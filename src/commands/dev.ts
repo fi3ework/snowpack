@@ -58,7 +58,8 @@ import {
   wrapCssModuleResponse,
   wrapEsmProxyResponse,
   wrapHtmlResponse,
-  wrapJSModuleResponse,
+  wrapImportMeta,
+  generateEnvModule,
 } from './build-util';
 import {command as installCommand} from './install';
 import {paint} from './paint';
@@ -365,8 +366,12 @@ export async function command(commandOptions: CommandOptions) {
         }
       });
 
-      if (reqPath === '/livereload/hmr.js') {
+      if (reqPath === '/__snowpack__/hmr.js') {
         sendFile(req, res, HMR_DEV_CODE, '.js');
+        return;
+      }
+      if (reqPath === '/__snowpack__/env.js') {
+        sendFile(req, res, generateEnvModule('development'));
         return;
       }
 
@@ -516,7 +521,7 @@ export async function command(commandOptions: CommandOptions) {
           responseFileExt = '.js';
           code = await wrapCssModuleResponse(reqPath, code, requestedFileExt, true);
         } else if (responseFileExt === '.js') {
-          code = await wrapJSModuleResponse(code, true);
+          code = wrapImportMeta(code, {env: true, hmr: true});
         }
         if (responseFileExt === '.js' && cssResource) {
           code = `import './${path.basename(reqPath).replace(/.js$/, '.css.proxy.js')}';\n` + code;
